@@ -3,70 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema V2.0</title>
+    <title>Sistema V3.0 Final</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #000; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .box { background: #222; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; }
-        input { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: none; }
-        button { width: 100%; padding: 15px; background: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        button.stop { background: #dc3545; }
-        video { width: 100%; border-radius: 10px; margin-top: 10px; background: #111; }
-        #localVideo { transform: rotateY(180deg); } /* Espelhar transmissor */
-        .hidden { display: none; }
-        .log { margin-top: 10px; font-size: 12px; color: #aaa; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #000; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .box { background: #1e1e1e; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; border: 1px solid #333; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #444; background: #2a2a2a; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #0070f3; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 16px; }
+        button:hover { background: #005bb5; }
+        button:active { transform: scale(0.98); }
+        video { width: 100%; border-radius: 10px; margin-top: 15px; background: #000; border: 1px solid #333; }
+        #localVideo { transform: rotateY(180deg); }
+        .hidden { display: none !important; }
+        .log { margin-top: 15px; font-size: 13px; color: #888; background: #111; padding: 5px; border-radius: 4px; }
+        h2, h3 { margin-top: 0; color: #fff; }
     </style>
 </head>
 <body>
 
     <div id="telaLogin" class="box">
-        <h2>Área Restrita</h2>
-        <input type="text" id="usuario" placeholder="Usuário">
+        <h2>Acesso ao Sistema</h2>
+        <input type="text" id="usuario" placeholder="Usuário (ex: receber)">
         <input type="password" id="senha" placeholder="Senha">
-        <button onclick="verificarLogin()">ENTRAR</button>
-        <p id="msgErro" style="color:red; display:none;">Dados incorretos.</p>
+        <button id="btnEntrar">ENTRAR</button>
+        <p id="msgStatus" style="margin-top:10px; color:#aaa; font-size:12px;">Pronto para conectar.</p>
     </div>
 
     <div id="telaTransmissor" class="box hidden">
-        <h3>Transmissor (Ao Vivo)</h3>
-        <p class="log">Seu ID: <span id="myIdDisplay">Gerando...</span></p>
+        <h3>A Transmitir</h3>
+        <p style="font-size:12px; color:#bbb;">Partilhe a senha "receber" para assistirem.</p>
         <video id="localVideo" autoplay muted playsinline></video>
-        <div id="transmissorLog" class="log">Aguardando receptor...</div>
+        <div id="transmissorLog" class="log">A iniciar câmara...</div>
     </div>
 
     <div id="telaReceptor" class="box hidden">
-        <h3>Receptor</h3>
+        <h3>A Assistir</h3>
         <video id="remoteVideo" autoplay playsinline></video>
-        <button id="btnAssistir" onclick="conectarAoHost()">ASSISTIR TRANSMISSÃO</button>
-        <div id="receptorLog" class="log">Clique no botão para conectar.</div>
+        <button id="btnAssistir">CLIQUE PARA VER VÍDEO</button>
+        <div id="receptorLog" class="log">Aguardando...</div>
     </div>
 
     <script>
-        // ID FIXO DO TRANSMISSOR (Para o receptor sempre saber quem procurar)
-        const HOST_ID = "sistema-seguro-093106Rm-host-v2";
-        let peer = null;
-        let localStream = null;
+        // CONFIGURAÇÕES
+        const HOST_ID = "sistema-seguro-093106Rm-v3-final";
+        const SENHA_CORRETA = "093106Rm";
+        
+        // ELEMENTOS
+        const btnEntrar = document.getElementById('btnEntrar');
+        const inputUser = document.getElementById('usuario');
+        const inputPass = document.getElementById('senha');
+        const msgStatus = document.getElementById('msgStatus');
 
-        function log(msg, elementId) {
-            document.getElementById(elementId).innerText = msg;
-            console.log(msg);
-        }
+        // EVENTOS DE LOGIN (Clique e Enter)
+        btnEntrar.addEventListener('click', tentarLogin);
+        inputPass.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') tentarLogin();
+        });
 
-        function verificarLogin() {
-            const u = document.getElementById('usuario').value.trim();
-            const s = document.getElementById('senha').value.trim();
+        function tentarLogin() {
+            const u = inputUser.value.trim().toLowerCase(); // Converte para minúsculas
+            const s = inputPass.value.trim();
 
-            if (s !== "093106Rm") {
-                document.getElementById('msgErro').style.display = 'block';
+            msgStatus.innerText = "A verificar dados...";
+
+            // Verifica a Senha
+            if (s !== SENHA_CORRETA) {
+                alert("Senha incorreta! Tente 093106Rm");
+                msgStatus.innerText = "Senha incorreta.";
                 return;
             }
 
-            if (u === "trasmitir123") {
+            // Verifica o Usuário
+            // Aceita 'trasmitir123' (erro comum) ou 'transmitir123' (correto)
+            if (u === "trasmitir123" || u === "transmitir123") {
                 iniciarTransmissor();
             } else if (u === "receber") {
                 prepararReceptor();
             } else {
-                document.getElementById('msgErro').style.display = 'block';
+                alert("Usuário não reconhecido.\nUse: 'trasmitir123' ou 'receber'");
+                msgStatus.innerText = "Usuário inválido.";
             }
         }
 
@@ -75,43 +90,33 @@
             document.getElementById('telaLogin').classList.add('hidden');
             document.getElementById('telaTransmissor').classList.remove('hidden');
 
-            log("Acessando câmera...", "transmissorLog");
-
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {
-                localStream = stream;
                 document.getElementById('localVideo').srcObject = stream;
-
-                // Cria o Peer com o ID fixo
-                peer = new Peer(HOST_ID);
+                
+                const peer = new Peer(HOST_ID);
 
                 peer.on('open', (id) => {
-                    document.getElementById('myIdDisplay').innerText = id;
-                    log("Online! Aguardando conexão...", "transmissorLog");
+                    document.getElementById('transmissorLog').innerText = "ONLINE. O seu ID está ativo.";
                 });
 
                 peer.on('error', (err) => {
                     if(err.type === 'unavailable-id') {
-                        log("ERRO: Já existe um transmissor aberto!", "transmissorLog");
+                        alert("ERRO: Já existe uma janela de transmissão aberta! Feche a outra.");
+                        document.getElementById('transmissorLog').innerText = "Erro: Transmissor já aberto noutro local.";
                     } else {
-                        log("Erro Peer: " + err.type, "transmissorLog");
+                        document.getElementById('transmissorLog').innerText = "Erro: " + err.type;
                     }
                 });
 
-                // Quando alguém ligar (Receptor), atenda enviando o stream
                 peer.on('call', (call) => {
-                    log("Receptor conectando...", "transmissorLog");
-                    call.answer(stream); // Envia o vídeo
-                    
-                    // Confirmação (opcional)
-                    call.on('close', () => {
-                        log("Receptor desconectou.", "transmissorLog");
-                    });
+                    document.getElementById('transmissorLog').innerText = "Alguém conectou-se!";
+                    call.answer(stream);
                 });
             })
             .catch(err => {
-                log("Erro Câmera: " + err.message, "transmissorLog");
-                alert("Você precisa permitir a câmera!");
+                alert("Erro: Permita o acesso à câmara!");
+                document.getElementById('transmissorLog').innerText = "Sem câmara.";
             });
         }
 
@@ -119,54 +124,66 @@
         function prepararReceptor() {
             document.getElementById('telaLogin').classList.add('hidden');
             document.getElementById('telaReceptor').classList.remove('hidden');
+
+            const btn = document.getElementById('btnAssistir');
+            const logArea = document.getElementById('receptorLog');
             
-            // Cria um ID aleatório para o receptor
-            peer = new Peer();
-            
-            peer.on('open', (id) => {
-                log("Pronto para conectar.", "receptorLog");
+            logArea.innerText = "Clique no botão acima para conectar.";
+
+            btn.addEventListener('click', () => {
+                btn.disabled = true;
+                btn.innerText = "A CONECTAR...";
+                logArea.innerText = "A procurar sinal...";
+
+                const peer = new Peer();
+
+                peer.on('open', () => {
+                    // Liga para o transmissor
+                    const call = peer.call(HOST_ID, dummyStream());
+
+                    if(!call) {
+                         logArea.innerText = "Falha ao criar chamada.";
+                         restaurarBotao();
+                         return;
+                    }
+
+                    call.on('stream', (remoteStream) => {
+                        logArea.innerText = "Sinal recebido!";
+                        const video = document.getElementById('remoteVideo');
+                        video.srcObject = remoteStream;
+                        video.play();
+                        btn.style.display = 'none'; // Some com o botão se funcionar
+                    });
+
+                    call.on('close', () => {
+                        logArea.innerText = "Transmissão caiu.";
+                        restaurarBotao();
+                    });
+                    
+                    // Timeout de segurança se não conectar em 5s
+                    setTimeout(() => {
+                        if(btn.style.display !== 'none') {
+                            logArea.innerText = "Transmissor não encontrado (offline?).";
+                            restaurarBotao();
+                        }
+                    }, 5000);
+                });
             });
 
-            peer.on('error', (err) => {
-                log("Erro: " + err.type, "receptorLog");
-            });
+            function restaurarBotao() {
+                btn.disabled = false;
+                btn.innerText = "TENTAR NOVAMENTE";
+            }
         }
 
-        function conectarAoHost() {
-            const btn = document.getElementById('btnAssistir');
-            btn.disabled = true;
-            btn.innerText = "CONECTANDO...";
-            log("Buscando transmissor...", "receptorLog");
-
-            // O pulo do gato: Criamos uma 'chamada' para o Host.
-            // O Host vai 'atender' e nos mandar o vídeo dele.
-            const call = peer.call(HOST_ID, dummyStream());
-
-            // Quando o Host devolver o vídeo:
-            call.on('stream', (remoteStream) => {
-                log("Conectado! Recebendo vídeo.", "receptorLog");
-                const video = document.getElementById('remoteVideo');
-                video.srcObject = remoteStream;
-                
-                // Força o play (necessário em celulares)
-                video.play().catch(e => {
-                    log("Clique no vídeo para ativar o som.", "receptorLog");
-                    video.controls = true; // Mostra controles se falhar o play auto
-                });
-                
-                btn.style.display = 'none'; // Esconde o botão após conectar
-            });
-
-            // Se cair a conexão
-            call.on('close', () => {
-                log("Transmissão encerrada.", "receptorLog");
-                btn.disabled = false;
-                btn.innerText = "RECONECTAR";
-                btn.style.display = 'block';
-            });
-            
-            // Timeout simples caso o transmissor não responda
-            setTimeout(() => {
-                if(document.getElementById('receptorLog').innerText === "Buscando transmissor...") {
-                    log("Transmissor não encontrado ou offline.", "receptorLog");
-                    btn.
+        // Cria áudio mudo para "enganar" o navegador e permitir a conexão bidirecional
+        function dummyStream() {
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const dst = ctx.createMediaStreamDestination();
+            osc.connect(dst);
+            return dst.stream;
+        }
+    </script>
+</body>
+</html>
