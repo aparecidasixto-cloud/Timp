@@ -3,255 +3,208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TV Station V11</title>
+    <title>TV Station V12 (Canvas)</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { 
-            font-family: 'Segoe UI', sans-serif; background: #121212; color: white; 
-            margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh;
-        }
-
-        /* --- TELA DE LOGIN --- */
-        #telaLogin {
-            text-align: center; margin-top: 20vh;
-            background: #1e1e1e; padding: 40px; border-radius: 15px; border: 1px solid #333;
-        }
-        input { 
-            padding: 15px; margin: 10px 0; width: 100%; box-sizing: border-box; 
-            background: #2a2a2a; border: none; color: white; border-radius: 5px;
-        }
-        .btn-login { width: 100%; padding: 15px; background: #0070f3; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; }
-
-        /* --- PAINEL DO ADMIN (ESTÚDIO) --- */
-        #painelAdmin { width: 95%; max-width: 600px; display: none; padding-bottom: 50px; }
-        .studio-header { background: #222; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center; border: 1px solid #444; }
+        body { background: #000; color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        .upload-area { 
-            border: 2px dashed #555; padding: 20px; text-align: center; 
-            margin-bottom: 20px; cursor: pointer; border-radius: 10px; background: #1a1a1a;
-        }
-        .upload-area:hover { background: #252525; border-color: #888; }
+        /* LOGIN */
+        #telaLogin { margin-top: 20vh; text-align: center; background: #222; padding: 30px; border-radius: 10px; width: 80%; max-width: 300px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #333; border: none; color: white; border-radius: 5px; box-sizing: border-box;}
+        .btn-blue { width: 100%; padding: 12px; background: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+
+        /* ADMIN */
+        #painelAdmin { display: none; width: 95%; max-width: 500px; padding-bottom: 50px; }
+        .header-box { background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #333; text-align: center; }
         
-        /* Lista de Reprodução */
-        #playlist { list-style: none; padding: 0; margin: 0; }
-        .video-item { 
-            background: #2a2a2a; padding: 15px; margin-bottom: 10px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            border-radius: 8px; border-left: 5px solid #444;
-        }
-        .video-item.playing { border-left: 5px solid #00ff00; background: #1a3a1a; }
-        .video-info { flex-grow: 1; margin-left: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .controls { display: flex; gap: 10px; }
-        .btn-sm { background: #444; border: none; color: white; padding: 8px; cursor: pointer; border-radius: 4px; }
-        .btn-sm:hover { background: #666; }
-        .btn-del { background: #800; }
+        /* O segredo: Canvas escondido ou visível pequeno */
+        #canvasMixer { width: 100%; background: #000; border: 1px solid #444; margin-bottom: 10px; display: block; height: 200px; object-fit: contain; }
+        
+        .playlist-box { background: #111; min-height: 100px; border-radius: 5px; padding: 10px; margin-top: 10px; }
+        .track { display: flex; justify-content: space-between; background: #222; padding: 10px; margin-bottom: 5px; border-radius: 4px; align-items: center; }
+        .track.active { border-left: 4px solid #0f0; background: #1a2a1a; }
+        
+        .upload-btn { display: block; width: 100%; padding: 20px; border: 2px dashed #555; background: #111; color: #aaa; text-align: center; cursor: pointer; margin-bottom: 10px; }
+        
+        .btn-transmitir { width: 100%; padding: 15px; font-size: 18px; background: #28a745; color: white; border: none; border-radius: 5px; margin-top: 10px; }
+        .btn-parar { background: #dc3545; }
 
-        /* Monitor de Preview (Admin) */
-        #previewAdmin { width: 100%; background: black; margin-bottom: 10px; border-radius: 5px; display: none; }
-
-        .btn-start { 
-            background: #00aa00; color: white; width: 100%; padding: 20px; 
-            font-size: 18px; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 20px;
-        }
-        .btn-stop { background: #aa0000; display: none; }
-
-        /* --- TELA DA TV (ESPECTADOR) --- */
-        #telaTV { width: 100%; height: 100vh; background: black; display: none; justify-content: center; align-items: center; flex-direction: column; }
+        /* TV */
+        #telaTV { display: none; width: 100%; height: 100vh; justify-content: center; align-items: center; flex-direction: column; background: #000; }
         video { width: 100%; height: 100%; object-fit: contain; }
+        .overlay { position: absolute; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; text-align: center; }
         
-        #btnLigarTV {
-            position: absolute; z-index: 10; padding: 20px 40px; font-size: 20px;
-            background: #0070f3; color: white; border: none; border-radius: 50px; cursor: pointer;
-            box-shadow: 0 0 20px rgba(0,112,243,0.5);
-        }
-        .status-msg { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 5px 10px; border-radius: 5px; color: #0f0; font-size: 12px; z-index: 5; }
-
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
     <div id="telaLogin">
-        <h2><i class="fas fa-broadcast-tower"></i> Sistema de TV</h2>
-        <input type="text" id="userInput" placeholder="Usuário (admin ou tv)">
-        <input type="password" id="passInput" placeholder="Senha">
-        <button class="btn-login" onclick="fazerLogin()">ACESSAR</button>
+        <h2>Emissora V12</h2>
+        <input type="text" id="user" placeholder="Usuário (admin ou tv)">
+        <input type="password" id="pass" placeholder="Senha">
+        <button class="btn-blue" onclick="entrar()">ENTRAR</button>
     </div>
 
     <div id="painelAdmin">
-        <div class="studio-header">
-            <h3><i class="fas fa-sliders-h"></i> Mesa de Controle</h3>
-            <p style="font-size:12px; color:#aaa">Adicione vídeos e clique em Iniciar</p>
-            <div id="statusAdmin" style="color: yellow; font-size: 12px; margin-top:5px;">Offline</div>
+        <div class="header-box">
+            <h3><i class="fas fa-satellite-dish"></i> Estúdio de Transmissão</h3>
+            <div id="statusAdmin" style="color:yellow; font-size:12px">Offline</div>
         </div>
 
-        <button id="btnTransmissao" class="btn-start" onclick="alternarTransmissao()">
-            <i class="fas fa-play"></i> INICIAR TRANSMISSÃO
-        </button>
+        <canvas id="canvasMixer" width="640" height="360"></canvas>
+        <video id="videoSource" style="display:none" playsinline webkit-playsinline></video>
 
-        <video id="playerOculto" style="width:100%; height: 200px; background:black; margin-bottom:10px;" controls muted></video>
+        <button id="btnPower" class="btn-transmitir" onclick="toggleTransmissao()">INICIAR TRANSMISSÃO</button>
 
-        <input type="file" id="fileInput" multiple accept="video/*" style="display:none" onchange="processarArquivos(this)">
-        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-            <i class="fas fa-plus-circle fa-2x"></i><br>
-            Adicionar Vídeos à Playlist
+        <div style="margin-top:20px;">
+            <label class="upload-btn">
+                <i class="fas fa-plus"></i> ADICIONAR VÍDEOS
+                <input type="file" multiple accept="video/*" hidden onchange="addVideos(this)">
+            </label>
         </div>
 
-        <ul id="playlist"></ul>
+        <div class="playlist-box" id="playlist">
+            <div style="color:#555; text-align:center; font-size:12px;">Lista vazia</div>
+        </div>
     </div>
 
     <div id="telaTV">
-        <div class="status-msg" id="statusTV">Aguardando sinal...</div>
-        <button id="btnLigarTV" onclick="ligarTV()">📺 LIGAR TV</button>
-        <video id="tvVideo" autoplay playsinline></video>
+        <video id="tvPlayer" autoplay playsinline></video>
+        <div class="overlay" id="tvOverlay">
+            <h3>Modo TV</h3>
+            <p id="tvStatus">Aguardando sinal...</p>
+            <button class="btn-blue" onclick="ligarReceptor()">CONECTAR AGORA</button>
+        </div>
     </div>
 
     <script>
         const SENHA = "093106Rm";
-        const ID_SALA = "tv-station-master-signal-v11";
+        const ID_CANAL = "canal-v12-canvas-fix-093106Rm";
         
-        // Variáveis do Admin
-        let playlist = []; // Guarda os arquivos
-        let indiceAtual = 0;
+        let playlistData = [];
+        let currentIndex = 0;
+        let isBroadcasting = false;
         let peer = null;
-        let transmitindo = false;
-        
+        let canvasInterval = null;
+
         // Elementos
-        const player = document.getElementById('playerOculto');
+        const videoEl = document.getElementById('videoSource');
+        const canvas = document.getElementById('canvasMixer');
+        const ctx = canvas.getContext('2d');
 
-        // --- LOGIN ---
-        function fazerLogin() {
-            const u = document.getElementById('userInput').value.trim().toLowerCase();
-            const p = document.getElementById('passInput').value.trim();
+        function entrar() {
+            const u = document.getElementById('user').value.toLowerCase();
+            const p = document.getElementById('pass').value;
 
-            if (p !== SENHA) return alert("Senha Incorreta");
+            if(p !== SENHA) return alert("Senha errada!");
 
             document.getElementById('telaLogin').classList.add('hidden');
-
-            if (u === "admin" || u === "transmissor" || u === "emissora") {
+            
+            if(u.includes('admin')) {
                 document.getElementById('painelAdmin').style.display = 'block';
-                iniciarSistemaAdmin();
             } else {
                 document.getElementById('telaTV').style.display = 'flex';
-                // Preparar TV
             }
         }
 
-        // ======================================================
-        // LÓGICA DO ADMIN (EMISSORA)
-        // ======================================================
+        // --- ADMIN FUNCTIONS ---
 
-        function iniciarSistemaAdmin() {
-            // Monitora quando um vídeo acaba para tocar o próximo
-            player.onended = function() {
-                tocarProximo();
+        function addVideos(input) {
+            const files = Array.from(input.files);
+            files.forEach(f => {
+                playlistData.push({ name: f.name, file: f });
+            });
+            renderPlaylist();
+        }
+
+        function renderPlaylist() {
+            const div = document.getElementById('playlist');
+            div.innerHTML = "";
+            playlistData.forEach((item, idx) => {
+                div.innerHTML += `
+                    <div class="track ${idx === currentIndex ? 'active' : ''}">
+                        <span style="font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:80%">${idx+1}. ${item.name}</span>
+                        <i class="fas fa-trash" style="color:#d00; cursor:pointer" onclick="removeVideo(${idx})"></i>
+                    </div>
+                `;
+            });
+        }
+
+        function removeVideo(idx) {
+            playlistData.splice(idx, 1);
+            renderPlaylist();
+        }
+
+        function toggleTransmissao() {
+            const btn = document.getElementById('btnPower');
+            
+            if(!isBroadcasting) {
+                if(playlistData.length === 0) return alert("Adicione vídeos antes!");
+                
+                isBroadcasting = true;
+                btn.innerText = "PARAR TRANSMISSÃO";
+                btn.className = "btn-transmitir btn-parar";
+                
+                playCurrentVideo(); // Começa a tocar o vídeo oculto
+                iniciarLoopCanvas(); // Começa a desenhar no canvas
+                iniciarServidorP2P(); // Começa a enviar a imagem
+                
+            } else {
+                location.reload(); // Reset mais seguro para limpar memória
+            }
+        }
+
+        function playCurrentVideo() {
+            if(currentIndex >= playlistData.length) currentIndex = 0; // Loop
+            
+            renderPlaylist();
+            
+            const file = playlistData[currentIndex].file;
+            const url = URL.createObjectURL(file);
+            
+            videoEl.src = url;
+            videoEl.play().catch(e => console.log("Erro play:", e));
+
+            videoEl.onended = () => {
+                currentIndex++;
+                playCurrentVideo();
             };
         }
 
-        function processarArquivos(input) {
-            const arquivos = Array.from(input.files);
-            arquivos.forEach(file => {
-                playlist.push({
-                    id: Math.random().toString(36).substr(2, 9),
-                    file: file,
-                    nome: file.name
-                });
-            });
-            renderizarPlaylist();
+        // O SEGREDO: Desenhar o vídeo no canvas 30 vezes por segundo
+        function iniciarLoopCanvas() {
+            // Ajusta tamanho do canvas se necessário
+            canvasInterval = setInterval(() => {
+                if (!videoEl.paused && !videoEl.ended) {
+                    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+                }
+            }, 33); // ~30 FPS
         }
 
-        function renderizarPlaylist() {
-            const ul = document.getElementById('playlist');
-            ul.innerHTML = "";
-
-            playlist.forEach((item, index) => {
-                const li = document.createElement('li');
-                li.className = `video-item ${index === indiceAtual && transmitindo ? 'playing' : ''}`;
-                li.innerHTML = `
-                    <div style="color:#aaa; font-size:12px; margin-right:10px;">#${index + 1}</div>
-                    <div class="video-info">${item.nome}</div>
-                    <div class="controls">
-                        <button class="btn-sm" onclick="mover(${index}, -1)"><i class="fas fa-arrow-up"></i></button>
-                        <button class="btn-sm" onclick="mover(${index}, 1)"><i class="fas fa-arrow-down"></i></button>
-                        <button class="btn-sm btn-del" onclick="remover(${index})"><i class="fas fa-trash"></i></button>
-                    </div>
-                `;
-                ul.appendChild(li);
-            });
-        }
-
-        function mover(index, direcao) {
-            if (index + direcao < 0 || index + direcao >= playlist.length) return;
-            const temp = playlist[index];
-            playlist[index] = playlist[index + direcao];
-            playlist[index + direcao] = temp;
-            
-            // Se mover o vídeo que está tocando agora, atualiza o índice
-            if (indiceAtual === index) indiceAtual = index + direcao;
-            else if (indiceAtual === index + direcao) indiceAtual = index;
-
-            renderizarPlaylist();
-        }
-
-        function remover(index) {
-            playlist.splice(index, 1);
-            if (index < indiceAtual) indiceAtual--;
-            renderizarPlaylist();
-        }
-
-        function alternarTransmissao() {
-            const btn = document.getElementById('btnTransmissao');
-            
-            if (!transmitindo) {
-                if (playlist.length === 0) return alert("Adicione vídeos primeiro!");
-                
-                // INICIAR
-                transmitindo = true;
-                btn.innerHTML = '<i class="fas fa-stop"></i> PARAR TRANSMISSÃO';
-                btn.className = "btn-start btn-stop";
-                
-                // Começa a tocar o primeiro vídeo localmente (mudo para o admin não ficar louco)
-                tocarVideo(indiceAtual);
-                
-                // Configura a transmissão do sinal
-                configurarPeerAdmin();
-
-            } else {
-                // PARAR
-                transmitindo = false;
-                btn.innerHTML = '<i class="fas fa-play"></i> INICIAR TRANSMISSÃO';
-                btn.className = "btn-start";
-                player.pause();
-                if(peer) peer.destroy();
-                document.getElementById('statusAdmin').innerText = "Offline";
-                renderizarPlaylist();
-            }
-        }
-
-        function tocarVideo(index) {
-            if (index >= playlist.length) index = 0; // Loop infinito
-            indiceAtual = index;
-            
-            const file = playlist[index].file;
-            const url = URL.createObjectURL(file);
-            
-            player.src = url;
-            player.play();
-            renderizarPlaylist();
-        }
-
-        function tocarProximo() {
-            tocarVideo(indiceAtual + 1);
-        }
-
-        // --- REDE (TRANSMISSÃO) ---
-        function configurarPeerAdmin() {
+        function iniciarServidorP2P() {
             const status = document.getElementById('statusAdmin');
-            status.innerText = "Iniciando servidor de sinal...";
+            status.innerText = "Conectando servidor...";
 
-            // Configuração para furar bloqueio 4G (TURN)
-            const config = {
+            // Captura o stream DO CANVAS (muito mais compatível que capturar do vídeo)
+            const stream = canvas.captureStream(30);
+            
+            // Tenta capturar o áudio do vídeo original e juntar com o vídeo do canvas
+            try {
+                const audioCtx = new AudioContext();
+                const source = audioCtx.createMediaElementSource(videoEl);
+                const dest = audioCtx.createMediaStreamDestination();
+                source.connect(dest);
+                // Adiciona o trilha de áudio ao stream do canvas
+                if(dest.stream.getAudioTracks().length > 0) {
+                    stream.addTrack(dest.stream.getAudioTracks()[0]);
+                }
+            } catch(e) {
+                console.log("Audio capture error (normal on some mobile):", e);
+            }
+
+            peer = new Peer(ID_CANAL, {
                 config: {
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
@@ -259,53 +212,29 @@
                         { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
                     ]
                 }
-            };
+            });
 
-            peer = new Peer(ID_SALA, config);
-
-            peer.on('open', (id) => {
-                status.innerText = "NO AR! Sinal ativo.";
+            peer.on('open', id => {
+                status.innerText = "NO AR! (Mantenha esta tela ativa)";
                 status.style.color = "#0f0";
             });
 
-            peer.on('error', (err) => {
-                if (err.type === 'unavailable-id') {
-                    // Se já existir, tentamos reconectar ou avisar
-                    status.innerText = "Erro: Já tem uma aba transmitindo.";
-                } else {
-                    status.innerText = "Erro de rede: " + err.type;
-                }
-            });
-
-            // O pulo do gato: captureStream()
-            // Transforma o vídeo que está tocando em uma "Live Webcam" falsa
-            let stream;
-            try {
-                // Tenta capturar a 30fps
-                stream = player.captureStream(30); 
-            } catch (e) {
-                stream = player.mozCaptureStream ? player.mozCaptureStream(30) : null;
-            }
-
-            if (!stream) return alert("Seu navegador não suporta transmissão de arquivo.");
-
-            // Quando alguém conectar (TV)
-            peer.on('call', (call) => {
-                // Atende enviando o stream do vídeo
+            peer.on('call', call => {
+                status.innerText = "Espectador conectado!";
                 call.answer(stream);
+            });
+            
+            peer.on('error', err => {
+                if(err.type === 'unavailable-id') alert("Erro: Já existe um painel aberto!");
+                status.innerText = "Erro: " + err.type;
             });
         }
 
+        // --- TV FUNCTIONS ---
 
-        // ======================================================
-        // LÓGICA DA TV (RECEPTOR)
-        // ======================================================
-        
-        function ligarTV() {
-            const btn = document.getElementById('btnLigarTV');
-            const status = document.getElementById('statusTV');
-            const video = document.getElementById('tvVideo');
-
+        function ligarReceptor() {
+            const btn = document.querySelector('#tvOverlay button');
+            const status = document.getElementById('tvStatus');
             btn.style.display = 'none';
             status.innerText = "Buscando sinal da emissora...";
 
@@ -320,38 +249,25 @@
             });
 
             peerTV.on('open', () => {
-                // Liga para a emissora
-                // Envia um audio mudo só para abrir a conexão bidirecional
-                const call = peerTV.call(ID_SALA, dummyStream());
-
-                call.on('stream', (remoteStream) => {
-                    status.innerText = "Sinal recebido. Carregando...";
-                    video.srcObject = remoteStream;
-                    video.play().then(() => {
-                        status.style.display = 'none'; // Esconde status se der tudo certo
-                    }).catch(err => {
-                        status.innerText = "Toque na tela para ativar o som";
-                    });
-                });
-
-                call.on('close', () => {
-                    alert("A transmissão encerrou.");
-                    location.reload();
-                });
+                const call = peerTV.call(ID_CANAL, dummyStream());
                 
-                // Se demorar muito
+                call.on('stream', remoteStream => {
+                    status.innerText = "Sinal recebido!";
+                    document.getElementById('tvOverlay').style.display = 'none';
+                    
+                    const v = document.getElementById('tvPlayer');
+                    v.srcObject = remoteStream;
+                    v.play();
+                });
+
+                call.on('close', () => alert("Emissora desligou."));
+                
                 setTimeout(() => {
-                    if (status.style.display !== 'none' && !video.srcObject) {
-                        status.innerText = "Emissora Offline ou Sinal Fraco.";
+                    if(!document.getElementById('tvPlayer').srcObject) {
+                        status.innerText = "Emissora não encontrada ou sinal fraco.";
                         btn.style.display = 'block';
-                        btn.innerText = "Tentar Novamente";
                     }
                 }, 8000);
-            });
-
-            peerTV.on('error', (err) => {
-                status.innerText = "Erro ao sintonizar: " + err.type;
-                btn.style.display = 'block';
             });
         }
 
