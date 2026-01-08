@@ -2,103 +2,117 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistema V8.0 (Acesso Rápido)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema TV - V9.0</title>
     <script src='https://meet.jit.si/external_api.js'></script>
     <style>
         body { 
             margin: 0; padding: 0; background-color: #000; color: white;
-            font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; 
+            font-family: Arial, sans-serif; height: 100vh; overflow: hidden; 
             display: flex; flex-direction: column; align-items: center; justify-content: center; 
         }
         
-        .menu-container {
-            width: 90%; max-width: 400px; text-align: center;
+        .container {
+            width: 90%; max-width: 500px; text-align: center;
             display: flex; flex-direction: column; gap: 20px;
+            z-index: 100;
         }
 
+        /* Botões gigantes para facilitar o clique na TV */
         .btn-grande {
-            padding: 25px;
-            font-size: 20px;
+            padding: 30px;
+            font-size: 24px; /* Letra grande para ler de longe */
             font-weight: bold;
-            border: none;
+            border: 2px solid #555;
             border-radius: 15px;
             cursor: pointer;
-            transition: transform 0.2s;
-            text-transform: uppercase;
             color: white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            position: relative;
+            background: #222;
+            transition: 0.3s;
         }
 
-        .btn-transmitir {
-            background: linear-gradient(135deg, #0070f3, #005bb5); /* Azul */
-        }
+        .btn-grande:hover { background: #333; border-color: white; transform: scale(1.05); }
+        .btn-azul { background: #0044cc; border: none; }
+        .btn-verde { background: #008800; border: none; }
 
-        .btn-receber {
-            background: linear-gradient(135deg, #28a745, #1e7e34); /* Verde */
-        }
-
-        /* Ícone de cadeado no botão transmitir */
-        .lock-icon {
-            position: absolute; top: 10px; right: 15px; font-size: 14px; opacity: 0.7;
-        }
-
-        .btn-grande:active { transform: scale(0.95); }
-
-        /* Área do Vídeo */
-        #video-frame { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: #000; display: none; z-index: 10;
+        /* Área de Senha (aparece na página, não é popup) */
+        #areaSenha {
+            background: #222; padding: 20px; border-radius: 10px; border: 1px solid #444;
+            display: none; /* Começa escondido */
         }
         
+        input { 
+            padding: 15px; font-size: 20px; width: 80%; margin-bottom: 15px; 
+            text-align: center; border-radius: 5px; border: none;
+        }
+
         .hidden { display: none !important; }
-        .footer { margin-top: 30px; color: #555; font-size: 12px; }
+        
+        #video-frame { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #000; display: none; z-index: 1;
+        }
     </style>
 </head>
 <body>
 
-    <div id="menuInicial" class="menu-container">
-        <h2 style="margin-bottom: 10px;">Controle de Acesso</h2>
+    <div id="menuInicial" class="container">
+        <h2>Escolha uma opção:</h2>
         
-        <button class="btn-grande btn-transmitir" onclick="entrarComoTransmissor()">
-            <span class="lock-icon">🔒</span>
-            🎥 Transmitir
-            <div style="font-size: 12px; font-weight: normal; margin-top:5px; opacity:0.8">Área Restrita (Senha)</div>
+        <button class="btn-grande btn-azul" onclick="mostrarSenha()">
+            📺 TRANSMITIR
+            <div style="font-size:14px; font-weight:normal; margin-top:5px">Cria a sala</div>
         </button>
 
-        <button class="btn-grande btn-receber" onclick="entrarComoReceptor()">
-            👁️ Receber
-            <div style="font-size: 12px; font-weight: normal; margin-top:5px; opacity:0.8">Entrar Direto</div>
+        <button class="btn-grande btn-verde" onclick="entrarDireto()">
+            👀 ASSISTIR
+            <div style="font-size:14px; font-weight:normal; margin-top:5px">Entrar sem senha</div>
         </button>
+    </div>
 
-        <div class="footer">Sistema V8.0 - Público/Privado</div>
+    <div id="areaSenha" class="container">
+        <h3>Digite a Senha:</h3>
+        <input type="password" id="campoSenha" placeholder="Senha aqui">
+        
+        <button class="btn-grande btn-azul" style="padding: 15px;" onclick="verificarSenha()">ENTRAR</button>
+        <button class="btn-grande" style="padding: 15px; background:#444; margin-top:10px;" onclick="voltar()">CANCELAR</button>
     </div>
 
     <div id="video-frame"></div>
 
     <script>
-        const SALA_ID = "SALA_V8_RAPIDA_093106Rm"; 
-        const SENHA_ADM = "093106Rm";
+        const SALA_ID = "SALA_TV_COMPATIVEL_V9_093106Rm"; 
+        const SENHA_REAL = "093106Rm";
 
-        // Função para quem vai transmitir (Pede Senha)
-        function entrarComoTransmissor() {
-            const senhaDigitada = prompt("Digite a senha do administrador:");
+        // Mostra o campo de senha na tela (sem popup)
+        function mostrarSenha() {
+            document.getElementById('menuInicial').classList.add('hidden');
+            document.getElementById('areaSenha').style.display = 'flex';
+            document.getElementById('campoSenha').focus();
+        }
 
-            if (senhaDigitada === SENHA_ADM) {
-                iniciarJitsi(true);
+        function voltar() {
+            document.getElementById('areaSenha').style.display = 'none';
+            document.getElementById('menuInicial').classList.remove('hidden');
+        }
+
+        function entrarDireto() {
+            iniciarJitsi(false); // False = Receptor (Assistir)
+        }
+
+        function verificarSenha() {
+            const digitado = document.getElementById('campoSenha').value.trim();
+            if (digitado === SENHA_REAL) {
+                iniciarJitsi(true); // True = Transmissor
             } else {
-                if(senhaDigitada !== null) alert("Senha incorreta. Acesso negado.");
+                alert("SENHA ERRADA!");
             }
         }
 
-        // Função para quem vai receber (NÃO Pede Senha)
-        function entrarComoReceptor() {
-            iniciarJitsi(false);
-        }
-
         function iniciarJitsi(souTransmissor) {
+            // Esconde tudo e deixa tela preta pro vídeo
             document.getElementById('menuInicial').classList.add('hidden');
+            document.getElementById('areaSenha').style.display = 'none'; // Garante que some
             document.getElementById('video-frame').style.display = 'block';
 
             const domain = 'meet.jit.si';
@@ -112,21 +126,23 @@
                     startWithAudioMuted: !souTransmissor, 
                     startWithVideoMuted: !souTransmissor,
                     prejoinPageEnabled: false,
-                    disableDeepLinking: true,
+                    disableDeepLinking: true, // Importante pra TV não tentar abrir App
                 },
                 interfaceConfigOverwrite: {
-                    // Transmissor tem controles, Receptor não
-                    TOOLBAR_BUTTONS: souTransmissor ? ['microphone', 'camera', 'hangup', 'tileview', 'fullscreen'] : ['hangup', 'fullscreen'], 
+                    // Remove quase tudo da tela pra ficar leve na TV
+                    TOOLBAR_BUTTONS: souTransmissor ? ['microphone', 'camera', 'hangup'] : ['hangup'], 
                     SHOW_JITSI_WATERMARK: false,
-                    MOBILE_APP_PROMO: false
+                    MOBILE_APP_PROMO: false,
+                    FILM_STRIP_MAX_HEIGHT: 0
                 },
                 userInfo: {
-                    displayName: souTransmissor ? "Transmissor (AO VIVO)" : "Visitante"
+                    displayName: souTransmissor ? "Transmissor" : "TV / Visitante"
                 }
             };
 
             const api = new JitsiMeetExternalAPI(domain, options);
 
+            // Força tela cheia pro vídeo
             api.addEventListener('videoConferenceJoined', () => {
                 if (!souTransmissor) {
                     api.executeCommand('toggleTileView'); 
