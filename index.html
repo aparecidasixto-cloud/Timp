@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistema V7.0 (Botões)</title>
+    <title>Sistema V8.0 (Acesso Rápido)</title>
     <script src='https://meet.jit.si/external_api.js'></script>
     <style>
         body { 
@@ -17,7 +17,6 @@
             display: flex; flex-direction: column; gap: 20px;
         }
 
-        /* Estilo dos Botões Gigantes */
         .btn-grande {
             padding: 25px;
             font-size: 20px;
@@ -29,6 +28,7 @@
             text-transform: uppercase;
             color: white;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            position: relative;
         }
 
         .btn-transmitir {
@@ -39,9 +39,14 @@
             background: linear-gradient(135deg, #28a745, #1e7e34); /* Verde */
         }
 
+        /* Ícone de cadeado no botão transmitir */
+        .lock-icon {
+            position: absolute; top: 10px; right: 15px; font-size: 14px; opacity: 0.7;
+        }
+
         .btn-grande:active { transform: scale(0.95); }
 
-        /* Área do Vídeo (Escondida no início) */
+        /* Área do Vídeo */
         #video-frame { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             background: #000; display: none; z-index: 10;
@@ -54,40 +59,45 @@
 <body>
 
     <div id="menuInicial" class="menu-container">
-        <h2 style="margin-bottom: 10px;">Escolha o Modo</h2>
+        <h2 style="margin-bottom: 10px;">Controle de Acesso</h2>
         
-        <button class="btn-grande btn-transmitir" onclick="verificarSenha(true)">
+        <button class="btn-grande btn-transmitir" onclick="entrarComoTransmissor()">
+            <span class="lock-icon">🔒</span>
             🎥 Transmitir
-            <div style="font-size: 12px; font-weight: normal; margin-top:5px; opacity:0.8">Gerar imagem e áudio</div>
+            <div style="font-size: 12px; font-weight: normal; margin-top:5px; opacity:0.8">Área Restrita (Senha)</div>
         </button>
 
-        <button class="btn-grande btn-receber" onclick="verificarSenha(false)">
+        <button class="btn-grande btn-receber" onclick="entrarComoReceptor()">
             👁️ Receber
-            <div style="font-size: 12px; font-weight: normal; margin-top:5px; opacity:0.8">Assistir transmissão</div>
+            <div style="font-size: 12px; font-weight: normal; margin-top:5px; opacity:0.8">Entrar Direto</div>
         </button>
 
-        <div class="footer">Sistema Seguro V7.0</div>
+        <div class="footer">Sistema V8.0 - Público/Privado</div>
     </div>
 
     <div id="video-frame"></div>
 
     <script>
-        const SALA_ID = "SALA_SECRETA_093106Rm_PRO_V7"; 
-        const SENHA_ACESSO = "093106Rm";
+        const SALA_ID = "SALA_V8_RAPIDA_093106Rm"; 
+        const SENHA_ADM = "093106Rm";
 
-        function verificarSenha(ehTransmissor) {
-            // Pede a senha num popup simples
-            const senhaDigitada = prompt("Digite a senha de segurança:");
+        // Função para quem vai transmitir (Pede Senha)
+        function entrarComoTransmissor() {
+            const senhaDigitada = prompt("Digite a senha do administrador:");
 
-            if (senhaDigitada === SENHA_ACESSO) {
-                iniciarJitsi(ehTransmissor);
+            if (senhaDigitada === SENHA_ADM) {
+                iniciarJitsi(true);
             } else {
-                if(senhaDigitada !== null) alert("Senha Incorreta!");
+                if(senhaDigitada !== null) alert("Senha incorreta. Acesso negado.");
             }
         }
 
+        // Função para quem vai receber (NÃO Pede Senha)
+        function entrarComoReceptor() {
+            iniciarJitsi(false);
+        }
+
         function iniciarJitsi(souTransmissor) {
-            // Esconde menu e mostra vídeo
             document.getElementById('menuInicial').classList.add('hidden');
             document.getElementById('video-frame').style.display = 'block';
 
@@ -99,32 +109,30 @@
                 parentNode: document.querySelector('#video-frame'),
                 lang: 'pt',
                 configOverwrite: {
-                    startWithAudioMuted: !souTransmissor, // Receptor mudo
-                    startWithVideoMuted: !souTransmissor, // Receptor sem câmera
+                    startWithAudioMuted: !souTransmissor, 
+                    startWithVideoMuted: !souTransmissor,
                     prejoinPageEnabled: false,
                     disableDeepLinking: true,
                 },
                 interfaceConfigOverwrite: {
-                    // Transmissor tem controles, Receptor não tem nada
-                    TOOLBAR_BUTTONS: souTransmissor ? ['microphone', 'camera', 'hangup', 'tileview'] : ['hangup'], 
+                    // Transmissor tem controles, Receptor não
+                    TOOLBAR_BUTTONS: souTransmissor ? ['microphone', 'camera', 'hangup', 'tileview', 'fullscreen'] : ['hangup', 'fullscreen'], 
                     SHOW_JITSI_WATERMARK: false,
                     MOBILE_APP_PROMO: false
                 },
                 userInfo: {
-                    displayName: souTransmissor ? "Transmissor" : "Espectador"
+                    displayName: souTransmissor ? "Transmissor (AO VIVO)" : "Visitante"
                 }
             };
 
             const api = new JitsiMeetExternalAPI(domain, options);
 
-            // Garante visualização correta
             api.addEventListener('videoConferenceJoined', () => {
                 if (!souTransmissor) {
                     api.executeCommand('toggleTileView'); 
                 }
             });
             
-            // Se desligar a chamada, recarrega a página para voltar ao menu
             api.addEventListener('videoConferenceLeft', () => {
                 location.reload();
             });
