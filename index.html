@@ -3,155 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema TV - V9.0</title>
-    <script src='https://meet.jit.si/external_api.js'></script>
+    <title>Sistema V10 - TV Fix</title>
     <style>
         body { 
-            margin: 0; padding: 0; background-color: #000; color: white;
-            font-family: Arial, sans-serif; height: 100vh; overflow: hidden; 
+            margin: 0; padding: 0; background-color: #0d0d0d; color: white;
+            font-family: Arial, sans-serif; height: 100vh;
             display: flex; flex-direction: column; align-items: center; justify-content: center; 
         }
         
         .container {
-            width: 90%; max-width: 500px; text-align: center;
-            display: flex; flex-direction: column; gap: 20px;
-            z-index: 100;
+            width: 90%; max-width: 600px; text-align: center;
+            background: #1a1a1a; padding: 30px; border-radius: 15px; border: 1px solid #333;
         }
 
-        /* Botões gigantes para facilitar o clique na TV */
-        .btn-grande {
-            padding: 30px;
-            font-size: 24px; /* Letra grande para ler de longe */
-            font-weight: bold;
-            border: 2px solid #555;
-            border-radius: 15px;
-            cursor: pointer;
-            color: white;
-            background: #222;
-            transition: 0.3s;
+        h2 { margin-top: 0; color: #fff; }
+        p { color: #aaa; margin-bottom: 25px; }
+
+        /* Botões Gigantes para TV */
+        .btn-tv {
+            display: block; width: 100%; padding: 25px; margin: 15px 0;
+            font-size: 22px; font-weight: bold; color: white;
+            border: none; border-radius: 10px; cursor: pointer;
+            text-decoration: none; transition: 0.3s;
         }
 
-        .btn-grande:hover { background: #333; border-color: white; transform: scale(1.05); }
-        .btn-azul { background: #0044cc; border: none; }
-        .btn-verde { background: #008800; border: none; }
-
-        /* Área de Senha (aparece na página, não é popup) */
-        #areaSenha {
-            background: #222; padding: 20px; border-radius: 10px; border: 1px solid #444;
-            display: none; /* Começa escondido */
-        }
+        .btn-azul { background: #0056b3; box-shadow: 0 4px 0 #004494; }
+        .btn-azul:hover { background: #004494; }
         
-        input { 
-            padding: 15px; font-size: 20px; width: 80%; margin-bottom: 15px; 
-            text-align: center; border-radius: 5px; border: none;
+        .btn-verde { background: #218838; box-shadow: 0 4px 0 #1e7e34; }
+        .btn-verde:hover { background: #1e7e34; }
+
+        .btn-voltar { background: #444; font-size: 16px; padding: 15px; }
+
+        /* Campos de Senha */
+        #inputSenha {
+            width: 80%; padding: 20px; font-size: 24px; text-align: center;
+            border-radius: 8px; border: 2px solid #555; background: #222; color: white;
+            margin-bottom: 20px;
         }
 
         .hidden { display: none !important; }
-        
-        #video-frame { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: #000; display: none; z-index: 1;
-        }
     </style>
 </head>
 <body>
 
-    <div id="menuInicial" class="container">
-        <h2>Escolha uma opção:</h2>
+    <div id="telaMenu" class="container">
+        <h2>Painel de Controle V10</h2>
+        <p>Selecione a função desejada:</p>
         
-        <button class="btn-grande btn-azul" onclick="mostrarSenha()">
-            📺 TRANSMITIR
-            <div style="font-size:14px; font-weight:normal; margin-top:5px">Cria a sala</div>
+        <button class="btn-tv btn-azul" onclick="irParaSenha()">
+            📹 TRANSMITIR (Gerar Imagem)
         </button>
 
-        <button class="btn-grande btn-verde" onclick="entrarDireto()">
-            👀 ASSISTIR
-            <div style="font-size:14px; font-weight:normal; margin-top:5px">Entrar sem senha</div>
+        <button class="btn-tv btn-verde" onclick="assistirNaTV()">
+            📺 ASSISTIR (Modo TV/Celular)
         </button>
     </div>
 
-    <div id="areaSenha" class="container">
-        <h3>Digite a Senha:</h3>
-        <input type="password" id="campoSenha" placeholder="Senha aqui">
+    <div id="telaSenha" class="container hidden">
+        <h3>Segurança Necessária</h3>
+        <p>Digite a senha para iniciar a transmissão:</p>
         
-        <button class="btn-grande btn-azul" style="padding: 15px;" onclick="verificarSenha()">ENTRAR</button>
-        <button class="btn-grande" style="padding: 15px; background:#444; margin-top:10px;" onclick="voltar()">CANCELAR</button>
+        <input type="password" id="inputSenha" placeholder="Senha aqui">
+        
+        <button class="btn-tv btn-azul" onclick="verificarSenha()">ENTRAR NO AR</button>
+        <button class="btn-tv btn-voltar" onclick="voltar()">VOLTAR</button>
     </div>
-
-    <div id="video-frame"></div>
 
     <script>
-        const SALA_ID = "SALA_TV_COMPATIVEL_V9_093106Rm"; 
-        const SENHA_REAL = "093106Rm";
+        // CONFIGURAÇÕES
+        // "jitsi_meet_external_api_id" é um parâmetro técnico para limpar a tela
+        const BASE_URL = "https://meet.jit.si/SALA_PROTEGIDA_093106Rm_TV_FIX";
+        const SENHA_ADM = "093106Rm";
 
-        // Mostra o campo de senha na tela (sem popup)
-        function mostrarSenha() {
-            document.getElementById('menuInicial').classList.add('hidden');
-            document.getElementById('areaSenha').style.display = 'flex';
-            document.getElementById('campoSenha').focus();
+        // --- NAVEGAÇÃO DO MENU ---
+        function irParaSenha() {
+            document.getElementById('telaMenu').classList.add('hidden');
+            document.getElementById('telaSenha').classList.remove('hidden');
+            document.getElementById('inputSenha').focus();
         }
 
         function voltar() {
-            document.getElementById('areaSenha').style.display = 'none';
-            document.getElementById('menuInicial').classList.remove('hidden');
+            document.getElementById('telaSenha').classList.add('hidden');
+            document.getElementById('telaMenu').classList.remove('hidden');
         }
 
-        function entrarDireto() {
-            iniciarJitsi(false); // False = Receptor (Assistir)
-        }
-
+        // --- LÓGICA DO TRANSMISSOR ---
         function verificarSenha() {
-            const digitado = document.getElementById('campoSenha').value.trim();
-            if (digitado === SENHA_REAL) {
-                iniciarJitsi(true); // True = Transmissor
+            const senha = document.getElementById('inputSenha').value;
+            if (senha === SENHA_ADM) {
+                // Abre link com configurações para ligar câmera e mic automaticamente
+                // e desativar avisos de "instale o app"
+                const linkTransmissor = BASE_URL + "#config.startWithVideoMuted=false&config.startWithAudioMuted=false&config.prejoinPageEnabled=false";
+                
+                // Abre na mesma janela para garantir funcionamento
+                window.location.href = linkTransmissor;
             } else {
-                alert("SENHA ERRADA!");
+                alert("SENHA INCORRETA");
             }
         }
 
-        function iniciarJitsi(souTransmissor) {
-            // Esconde tudo e deixa tela preta pro vídeo
-            document.getElementById('menuInicial').classList.add('hidden');
-            document.getElementById('areaSenha').style.display = 'none'; // Garante que some
-            document.getElementById('video-frame').style.display = 'block';
-
-            const domain = 'meet.jit.si';
-            const options = {
-                roomName: SALA_ID,
-                width: '100%',
-                height: '100%',
-                parentNode: document.querySelector('#video-frame'),
-                lang: 'pt',
-                configOverwrite: {
-                    startWithAudioMuted: !souTransmissor, 
-                    startWithVideoMuted: !souTransmissor,
-                    prejoinPageEnabled: false,
-                    disableDeepLinking: true, // Importante pra TV não tentar abrir App
-                },
-                interfaceConfigOverwrite: {
-                    // Remove quase tudo da tela pra ficar leve na TV
-                    TOOLBAR_BUTTONS: souTransmissor ? ['microphone', 'camera', 'hangup'] : ['hangup'], 
-                    SHOW_JITSI_WATERMARK: false,
-                    MOBILE_APP_PROMO: false,
-                    FILM_STRIP_MAX_HEIGHT: 0
-                },
-                userInfo: {
-                    displayName: souTransmissor ? "Transmissor" : "TV / Visitante"
-                }
-            };
-
-            const api = new JitsiMeetExternalAPI(domain, options);
-
-            // Força tela cheia pro vídeo
-            api.addEventListener('videoConferenceJoined', () => {
-                if (!souTransmissor) {
-                    api.executeCommand('toggleTileView'); 
-                }
-            });
+        // --- LÓGICA DA TV (RECEPTOR) ---
+        function assistirNaTV() {
+            // Configuração ESPECIAL para TV:
+            // 1. startWithVideoMuted=true (Começa sem enviar câmera da TV)
+            // 2. startWithAudioMuted=true (Começa mudo para evitar microfonia)
+            // 3. filmStripOnly=false (Modo tela cheia)
+            // 4. interfaceConfig.TOOLBAR_BUTTONS (Remove botões para limpar a tela da TV)
             
-            api.addEventListener('videoConferenceLeft', () => {
-                location.reload();
-            });
+            const configTV = [
+                "config.startWithVideoMuted=true",
+                "config.startWithAudioMuted=true",
+                "config.prejoinPageEnabled=false",
+                "interfaceConfig.TOOLBAR_BUTTONS=[]", // Remove todos os botões
+                "interfaceConfig.FILM_STRIP_MAX_HEIGHT=0" // Remove miniaturas
+            ].join("&");
+
+            const linkTV = BASE_URL + "#" + configTV;
+
+            // O SEGREDO: Redirecionamento total. 
+            // A TV sai do seu site e vai para o player oficial, que é compatível.
+            window.location.href = linkTV;
         }
     </script>
 </body>
