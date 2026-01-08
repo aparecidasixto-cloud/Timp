@@ -3,280 +3,256 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TV Station V12 (Canvas)</title>
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <title>TV Station V13</title>
+    <script src='https://meet.jit.si/external_api.js'></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background: #000; color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        
-        /* LOGIN */
-        #telaLogin { margin-top: 20vh; text-align: center; background: #222; padding: 30px; border-radius: 10px; width: 80%; max-width: 300px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #333; border: none; color: white; border-radius: 5px; box-sizing: border-box;}
-        .btn-blue { width: 100%; padding: 12px; background: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        body { background: #121212; color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-        /* ADMIN */
-        #painelAdmin { display: none; width: 95%; max-width: 500px; padding-bottom: 50px; }
-        .header-box { background: #1a1a1a; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #333; text-align: center; }
-        
-        /* O segredo: Canvas escondido ou visível pequeno */
-        #canvasMixer { width: 100%; background: #000; border: 1px solid #444; margin-bottom: 10px; display: block; height: 200px; object-fit: contain; }
-        
-        .playlist-box { background: #111; min-height: 100px; border-radius: 5px; padding: 10px; margin-top: 10px; }
-        .track { display: flex; justify-content: space-between; background: #222; padding: 10px; margin-bottom: 5px; border-radius: 4px; align-items: center; }
-        .track.active { border-left: 4px solid #0f0; background: #1a2a1a; }
-        
-        .upload-btn { display: block; width: 100%; padding: 20px; border: 2px dashed #555; background: #111; color: #aaa; text-align: center; cursor: pointer; margin-bottom: 10px; }
-        
-        .btn-transmitir { width: 100%; padding: 15px; font-size: 18px; background: #28a745; color: white; border: none; border-radius: 5px; margin-top: 10px; }
-        .btn-parar { background: #dc3545; }
+        /* --- TELA DE LOGIN --- */
+        #telaLogin {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 1000; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+        .login-box { width: 80%; max-width: 300px; text-align: center; }
+        input { width: 100%; padding: 15px; margin: 10px 0; background: #333; border: 1px solid #555; color: white; border-radius: 5px; text-align: center; }
+        .btn-entrar { width: 100%; padding: 15px; background: #0070f3; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
 
-        /* TV */
-        #telaTV { display: none; width: 100%; height: 100vh; justify-content: center; align-items: center; flex-direction: column; background: #000; }
-        video { width: 100%; height: 100%; object-fit: contain; }
-        .overlay { position: absolute; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; text-align: center; }
+        /* --- ESTÚDIO (ADMIN) --- */
+        #painelAdmin { display: none; height: 100%; flex-direction: column; }
         
-        .hidden { display: none !important; }
+        /* Player Principal */
+        #areaPreview { flex: 1; background: black; position: relative; display: flex; align-items: center; justify-content: center; border-bottom: 2px solid #333; }
+        video { max-width: 100%; max-height: 100%; }
+
+        /* Controles da Playlist */
+        #areaControles { height: 40%; background: #1a1a1a; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; }
+        
+        .upload-btn { background: #333; color: white; padding: 15px; text-align: center; border: 2px dashed #555; border-radius: 5px; margin-bottom: 10px; cursor: pointer; }
+        
+        .playlist-item { 
+            background: #222; padding: 10px; margin-bottom: 5px; border-radius: 4px; 
+            display: flex; justify-content: space-between; align-items: center; font-size: 14px;
+        }
+        .playlist-item.active { background: #004400; border-left: 4px solid #0f0; }
+
+        /* Botão Mágico de Transmissão */
+        #btnGoLive {
+            background: #d00; color: white; padding: 15px; border: none; font-weight: bold;
+            font-size: 16px; margin-bottom: 10px; border-radius: 5px; cursor: pointer;
+        }
+
+        /* Jitsi Escondido (Admin) */
+        #jitsi-admin-container { height: 1px; opacity: 0; overflow: hidden; }
+
+        /* --- TV (RECEPTOR) --- */
+        #telaTV { display: none; width: 100%; height: 100%; background: black; }
+        #jitsi-tv-container { width: 100%; height: 100%; }
+
+        .aviso-overlay {
+            position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8);
+            padding: 10px; border-radius: 5px; font-size: 12px; pointer-events: none; z-index: 50;
+        }
     </style>
 </head>
 <body>
 
     <div id="telaLogin">
-        <h2>Emissora V12</h2>
-        <input type="text" id="user" placeholder="Usuário (admin ou tv)">
-        <input type="password" id="pass" placeholder="Senha">
-        <button class="btn-blue" onclick="entrar()">ENTRAR</button>
+        <div class="login-box">
+            <h2 style="margin-bottom:5px;">TV Station V13</h2>
+            <p style="color:#aaa; font-size:12px; margin-bottom:20px;">Upload & Play</p>
+            <input type="text" id="user" placeholder="Usuário (admin ou tv)">
+            <input type="password" id="pass" placeholder="Senha">
+            <button class="btn-entrar" onclick="fazerLogin()">ENTRAR</button>
+        </div>
     </div>
 
     <div id="painelAdmin">
-        <div class="header-box">
-            <h3><i class="fas fa-satellite-dish"></i> Estúdio de Transmissão</h3>
-            <div id="statusAdmin" style="color:yellow; font-size:12px">Offline</div>
+        <div id="areaPreview">
+            <div class="aviso-overlay" id="statusTransmissao">MODO ESTÚDIO: OFFLINE</div>
+            <video id="playerPrincipal" playsinline controls></video>
         </div>
 
-        <canvas id="canvasMixer" width="640" height="360"></canvas>
-        <video id="videoSource" style="display:none" playsinline webkit-playsinline></video>
-
-        <button id="btnPower" class="btn-transmitir" onclick="toggleTransmissao()">INICIAR TRANSMISSÃO</button>
-
-        <div style="margin-top:20px;">
+        <div id="areaControles">
+            <button id="btnGoLive" onclick="iniciarTransmissao()">
+                <i class="fas fa-satellite-dish"></i> INICIAR CONEXÃO
+            </button>
+            
             <label class="upload-btn">
                 <i class="fas fa-plus"></i> ADICIONAR VÍDEOS
-                <input type="file" multiple accept="video/*" hidden onchange="addVideos(this)">
+                <input type="file" multiple accept="video/*" hidden onchange="carregarVideos(this)">
             </label>
-        </div>
 
-        <div class="playlist-box" id="playlist">
-            <div style="color:#555; text-align:center; font-size:12px;">Lista vazia</div>
+            <div id="listaPlaylist">
+                <div style="text-align:center; color:#555; font-size:12px; padding:10px;">
+                    Adicione vídeos para começar
+                </div>
+            </div>
         </div>
+        
+        <div id="jitsi-admin-container"></div>
     </div>
 
     <div id="telaTV">
-        <video id="tvPlayer" autoplay playsinline></video>
-        <div class="overlay" id="tvOverlay">
-            <h3>Modo TV</h3>
-            <p id="tvStatus">Aguardando sinal...</p>
-            <button class="btn-blue" onclick="ligarReceptor()">CONECTAR AGORA</button>
-        </div>
+        <div id="jitsi-tv-container"></div>
     </div>
 
     <script>
         const SENHA = "093106Rm";
-        const ID_CANAL = "canal-v12-canvas-fix-093106Rm";
+        const SALA_ID = "TV_STATION_PLAYLIST_093106Rm_MASTER";
         
-        let playlistData = [];
-        let currentIndex = 0;
-        let isBroadcasting = false;
-        let peer = null;
-        let canvasInterval = null;
+        let playlist = [];
+        let indexAtual = 0;
+        let adminApi = null;
 
-        // Elementos
-        const videoEl = document.getElementById('videoSource');
-        const canvas = document.getElementById('canvasMixer');
-        const ctx = canvas.getContext('2d');
+        const player = document.getElementById('playerPrincipal');
+        const listaEl = document.getElementById('listaPlaylist');
 
-        function entrar() {
+        function fazerLogin() {
             const u = document.getElementById('user').value.toLowerCase();
             const p = document.getElementById('pass').value;
 
-            if(p !== SENHA) return alert("Senha errada!");
+            if (p !== SENHA) return alert("Senha incorreta!");
 
-            document.getElementById('telaLogin').classList.add('hidden');
-            
-            if(u.includes('admin')) {
-                document.getElementById('painelAdmin').style.display = 'block';
+            document.getElementById('telaLogin').style.display = 'none';
+
+            if (u === "admin" || u.includes("trans")) {
+                document.getElementById('painelAdmin').style.display = 'flex';
+                configurarPlayer();
             } else {
-                document.getElementById('telaTV').style.display = 'flex';
+                document.getElementById('telaTV').style.display = 'block';
+                iniciarTV();
             }
         }
 
-        // --- ADMIN FUNCTIONS ---
+        // --- SISTEMA DE PLAYLIST (ADMIN) ---
 
-        function addVideos(input) {
+        function carregarVideos(input) {
             const files = Array.from(input.files);
             files.forEach(f => {
-                playlistData.push({ name: f.name, file: f });
+                playlist.push({ nome: f.name, file: f });
             });
-            renderPlaylist();
+            renderizarPlaylist();
+            
+            // Se for o primeiro vídeo, carrega ele mas não dá play
+            if(playlist.length > 0 && player.src === "") {
+                tocarVideo(0, false); 
+            }
         }
 
-        function renderPlaylist() {
-            const div = document.getElementById('playlist');
-            div.innerHTML = "";
-            playlistData.forEach((item, idx) => {
-                div.innerHTML += `
-                    <div class="track ${idx === currentIndex ? 'active' : ''}">
-                        <span style="font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:80%">${idx+1}. ${item.name}</span>
-                        <i class="fas fa-trash" style="color:#d00; cursor:pointer" onclick="removeVideo(${idx})"></i>
+        function renderizarPlaylist() {
+            listaEl.innerHTML = "";
+            playlist.forEach((item, idx) => {
+                listaEl.innerHTML += `
+                    <div class="playlist-item ${idx === indexAtual ? 'active' : ''}" onclick="tocarVideo(${idx}, true)">
+                        <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:85%">
+                            ${idx + 1}. ${item.nome}
+                        </div>
+                        <i class="fas fa-play" style="font-size:10px;"></i>
                     </div>
                 `;
             });
         }
 
-        function removeVideo(idx) {
-            playlistData.splice(idx, 1);
-            renderPlaylist();
+        function tocarVideo(idx, autoPlay) {
+            indexAtual = idx;
+            renderizarPlaylist();
+            
+            const file = playlist[idx].file;
+            player.src = URL.createObjectURL(file);
+            
+            if(autoPlay) player.play();
         }
 
-        function toggleTransmissao() {
-            const btn = document.getElementById('btnPower');
-            
-            if(!isBroadcasting) {
-                if(playlistData.length === 0) return alert("Adicione vídeos antes!");
-                
-                isBroadcasting = true;
-                btn.innerText = "PARAR TRANSMISSÃO";
-                btn.className = "btn-transmitir btn-parar";
-                
-                playCurrentVideo(); // Começa a tocar o vídeo oculto
-                iniciarLoopCanvas(); // Começa a desenhar no canvas
-                iniciarServidorP2P(); // Começa a enviar a imagem
-                
-            } else {
-                location.reload(); // Reset mais seguro para limpar memória
-            }
-        }
-
-        function playCurrentVideo() {
-            if(currentIndex >= playlistData.length) currentIndex = 0; // Loop
-            
-            renderPlaylist();
-            
-            const file = playlistData[currentIndex].file;
-            const url = URL.createObjectURL(file);
-            
-            videoEl.src = url;
-            videoEl.play().catch(e => console.log("Erro play:", e));
-
-            videoEl.onended = () => {
-                currentIndex++;
-                playCurrentVideo();
+        function configurarPlayer() {
+            // Toca o próximo automaticamente
+            player.onended = () => {
+                if (indexAtual + 1 < playlist.length) {
+                    tocarVideo(indexAtual + 1, true);
+                } else {
+                    // Loop ou parar? Vamos fazer loop
+                    tocarVideo(0, true);
+                }
             };
         }
 
-        // O SEGREDO: Desenhar o vídeo no canvas 30 vezes por segundo
-        function iniciarLoopCanvas() {
-            // Ajusta tamanho do canvas se necessário
-            canvasInterval = setInterval(() => {
-                if (!videoEl.paused && !videoEl.ended) {
-                    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-                }
-            }, 33); // ~30 FPS
-        }
+        // --- TRANSMISSÃO (O SEGREDO DO SCREEN SHARE) ---
 
-        function iniciarServidorP2P() {
-            const status = document.getElementById('statusAdmin');
-            status.innerText = "Conectando servidor...";
+        function iniciarTransmissao() {
+            const btn = document.getElementById('btnGoLive');
+            btn.disabled = true;
+            btn.style.background = "#555";
+            btn.innerText = "CONECTANDO...";
 
-            // Captura o stream DO CANVAS (muito mais compatível que capturar do vídeo)
-            const stream = canvas.captureStream(30);
+            document.getElementById('statusTransmissao').innerText = "1. ABRA O MENU DO JITSI E CLIQUE EM 'COMPARTILHAR TELA'";
             
-            // Tenta capturar o áudio do vídeo original e juntar com o vídeo do canvas
-            try {
-                const audioCtx = new AudioContext();
-                const source = audioCtx.createMediaElementSource(videoEl);
-                const dest = audioCtx.createMediaStreamDestination();
-                source.connect(dest);
-                // Adiciona o trilha de áudio ao stream do canvas
-                if(dest.stream.getAudioTracks().length > 0) {
-                    stream.addTrack(dest.stream.getAudioTracks()[0]);
-                }
-            } catch(e) {
-                console.log("Audio capture error (normal on some mobile):", e);
-            }
-
-            peer = new Peer(ID_CANAL, {
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-                        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
-                    ]
-                }
-            });
-
-            peer.on('open', id => {
-                status.innerText = "NO AR! (Mantenha esta tela ativa)";
-                status.style.color = "#0f0";
-            });
-
-            peer.on('call', call => {
-                status.innerText = "Espectador conectado!";
-                call.answer(stream);
-            });
+            // Mostra o container do Jitsi um pouco para o admin poder clicar nos botões se precisar
+            // Mas a ideia é que ele use a interface
             
-            peer.on('error', err => {
-                if(err.type === 'unavailable-id') alert("Erro: Já existe um painel aberto!");
-                status.innerText = "Erro: " + err.type;
+            const domain = 'meet.jit.si';
+            const options = {
+                roomName: SALA_ID,
+                width: '100%',
+                height: '100%',
+                parentNode: document.querySelector('#jitsi-admin-container'),
+                lang: 'pt',
+                configOverwrite: {
+                    prejoinPageEnabled: false,
+                    startWithAudioMuted: false, // Áudio ligado para comentar
+                    startWithVideoMuted: true, // Câmera desligada (vamos usar tela)
+                },
+                interfaceConfigOverwrite: {
+                    TOOLBAR_BUTTONS: ['microphone', 'desktop', 'hangup', 'settings'], // Apenas o necessário
+                },
+                userInfo: { displayName: "EMISSORA (ADMIN)" }
+            };
+
+            adminApi = new JitsiMeetExternalAPI(domain, options);
+            
+            // Truque: Quando entrar, avisa o admin
+            adminApi.addEventListener('videoConferenceJoined', () => {
+                alert("CONECTADO! \n\nAgora procure o botão de 'COMPARTILHAR TELA' (ícone de monitor) no menu da chamada e selecione a aba ou tela cheia.");
+                document.getElementById('statusTransmissao').innerText = "NO AR (ASSIM QUE COMPARTILHAR A TELA)";
+                document.getElementById('statusTransmissao').style.color = "#0f0";
             });
+
+            // Torna o frame visível temporariamente se o admin não achar o botão
+            // No mobile, o navegador pede permissão automaticamente ou mostra o botão
+            document.getElementById('jitsi-admin-container').style.height = "50px"; 
+            document.getElementById('jitsi-admin-container').style.opacity = "1";
         }
 
-        // --- TV FUNCTIONS ---
+        // --- MODO TV (ESPECTADOR) ---
 
-        function ligarReceptor() {
-            const btn = document.querySelector('#tvOverlay button');
-            const status = document.getElementById('tvStatus');
-            btn.style.display = 'none';
-            status.innerText = "Buscando sinal da emissora...";
+        function iniciarTV() {
+            const domain = 'meet.jit.si';
+            const options = {
+                roomName: SALA_ID,
+                width: '100%',
+                height: '100%',
+                parentNode: document.querySelector('#jitsi-tv-container'),
+                lang: 'pt',
+                configOverwrite: {
+                    startWithAudioMuted: true, // Começa mudo pra não bloquear
+                    startWithVideoMuted: true,
+                    prejoinPageEnabled: false,
+                    disableDeepLinking: true, 
+                },
+                interfaceConfigOverwrite: {
+                    TOOLBAR_BUTTONS: [], // Sem botões
+                    FILM_STRIP_MAX_HEIGHT: 0,
+                    SHOW_JITSI_WATERMARK: false
+                },
+                userInfo: { displayName: "TV ESPECTADOR" }
+            };
 
-            const peerTV = new Peer(undefined, {
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-                        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
-                    ]
-                }
-            });
-
-            peerTV.on('open', () => {
-                const call = peerTV.call(ID_CANAL, dummyStream());
-                
-                call.on('stream', remoteStream => {
-                    status.innerText = "Sinal recebido!";
-                    document.getElementById('tvOverlay').style.display = 'none';
-                    
-                    const v = document.getElementById('tvPlayer');
-                    v.srcObject = remoteStream;
-                    v.play();
-                });
-
-                call.on('close', () => alert("Emissora desligou."));
-                
-                setTimeout(() => {
-                    if(!document.getElementById('tvPlayer').srcObject) {
-                        status.innerText = "Emissora não encontrada ou sinal fraco.";
-                        btn.style.display = 'block';
-                    }
-                }, 8000);
+            const tvApi = new JitsiMeetExternalAPI(domain, options);
+            
+            tvApi.addEventListener('videoConferenceJoined', () => {
+                tvApi.executeCommand('toggleTileView'); // Garante tela cheia
             });
         }
-
-        function dummyStream() {
-            const ctx = new AudioContext();
-            const dst = ctx.createMediaStreamDestination();
-            return dst.stream;
-        }
-
     </script>
 </body>
 </html>
