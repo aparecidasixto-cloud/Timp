@@ -3,69 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistema V6.0 (Pro)</title>
+    <title>Sistema V7.0 (Botões)</title>
     <script src='https://meet.jit.si/external_api.js'></script>
     <style>
-        body { margin: 0; padding: 0; background-color: #000; font-family: sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        
-        /* Estilo da tela de login */
-        .login-box { 
-            background: #1a1a1a; padding: 25px; border-radius: 12px; 
-            width: 85%; max-width: 350px; text-align: center; border: 1px solid #333; z-index: 100;
+        body { 
+            margin: 0; padding: 0; background-color: #000; color: white;
+            font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
         }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: none; background: #333; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #0070f3; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 16px; }
         
-        /* Onde o vídeo vai aparecer */
+        .menu-container {
+            width: 90%; max-width: 400px; text-align: center;
+            display: flex; flex-direction: column; gap: 20px;
+        }
+
+        /* Estilo dos Botões Gigantes */
+        .btn-grande {
+            padding: 25px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            text-transform: uppercase;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .btn-transmitir {
+            background: linear-gradient(135deg, #0070f3, #005bb5); /* Azul */
+        }
+
+        .btn-receber {
+            background: linear-gradient(135deg, #28a745, #1e7e34); /* Verde */
+        }
+
+        .btn-grande:active { transform: scale(0.95); }
+
+        /* Área do Vídeo (Escondida no início) */
         #video-frame { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: #000; display: none; z-index: 1;
+            background: #000; display: none; z-index: 10;
         }
         
         .hidden { display: none !important; }
-        p { color: #888; font-size: 12px; }
+        .footer { margin-top: 30px; color: #555; font-size: 12px; }
     </style>
 </head>
 <body>
 
-    <div id="login-area" class="login-box">
-        <h2 style="color:white; margin-top:0;">Acesso Seguro</h2>
-        <input type="text" id="usuario" placeholder="Usuário">
-        <input type="password" id="senha" placeholder="Senha">
-        <button onclick="entrar()">ENTRAR</button>
-        <p>Infraestrutura v6.0 (Anti-Bloqueio)</p>
+    <div id="menuInicial" class="menu-container">
+        <h2 style="margin-bottom: 10px;">Escolha o Modo</h2>
+        
+        <button class="btn-grande btn-transmitir" onclick="verificarSenha(true)">
+            🎥 Transmitir
+            <div style="font-size: 12px; font-weight: normal; margin-top:5px; opacity:0.8">Gerar imagem e áudio</div>
+        </button>
+
+        <button class="btn-grande btn-receber" onclick="verificarSenha(false)">
+            👁️ Receber
+            <div style="font-size: 12px; font-weight: normal; margin-top:5px; opacity:0.8">Assistir transmissão</div>
+        </button>
+
+        <div class="footer">Sistema Seguro V7.0</div>
     </div>
 
     <div id="video-frame"></div>
 
     <script>
-        // Nome da sala secreta gerado pelo seu código
-        const SALA_ID = "SALA_PRIVADA_093106Rm_X92_SISTEMA_UNICO"; 
+        const SALA_ID = "SALA_SECRETA_093106Rm_PRO_V7"; 
+        const SENHA_ACESSO = "093106Rm";
 
-        function entrar() {
-            const u = document.getElementById('usuario').value.trim().toLowerCase();
-            const s = document.getElementById('senha').value.trim();
+        function verificarSenha(ehTransmissor) {
+            // Pede a senha num popup simples
+            const senhaDigitada = prompt("Digite a senha de segurança:");
 
-            if (s !== "093106Rm") {
-                alert("Senha incorreta!");
-                return;
-            }
-
-            if (u.includes("trasmitir") || u.includes("transmitir")) {
-                iniciarSistema(true); // É o Transmissor
-            } else if (u === "receber") {
-                iniciarSistema(false); // É o Receptor
+            if (senhaDigitada === SENHA_ACESSO) {
+                iniciarJitsi(ehTransmissor);
             } else {
-                alert("Usuário desconhecido.");
+                if(senhaDigitada !== null) alert("Senha Incorreta!");
             }
         }
 
-        function iniciarSistema(souTransmissor) {
-            // Esconde login e mostra a tela de vídeo
-            document.getElementById('login-area').classList.add('hidden');
+        function iniciarJitsi(souTransmissor) {
+            // Esconde menu e mostra vídeo
+            document.getElementById('menuInicial').classList.add('hidden');
             document.getElementById('video-frame').style.display = 'block';
 
-            // Configurações para esconder que é uma reunião e parecer um sistema próprio
             const domain = 'meet.jit.si';
             const options = {
                 roomName: SALA_ID,
@@ -74,32 +99,34 @@
                 parentNode: document.querySelector('#video-frame'),
                 lang: 'pt',
                 configOverwrite: {
-                    startWithAudioMuted: !souTransmissor, // Receptor começa mudo
-                    startWithVideoMuted: !souTransmissor, // Receptor começa sem câmera
-                    prejoinPageEnabled: false, // Entra direto sem perguntar
-                    disableDeepLinking: true, // Não pede para instalar app
+                    startWithAudioMuted: !souTransmissor, // Receptor mudo
+                    startWithVideoMuted: !souTransmissor, // Receptor sem câmera
+                    prejoinPageEnabled: false,
+                    disableDeepLinking: true,
                 },
                 interfaceConfigOverwrite: {
-                    // Remove botões para limpar a tela
-                    TOOLBAR_BUTTONS: souTransmissor ? ['microphone', 'camera', 'hangup'] : ['hangup'], 
+                    // Transmissor tem controles, Receptor não tem nada
+                    TOOLBAR_BUTTONS: souTransmissor ? ['microphone', 'camera', 'hangup', 'tileview'] : ['hangup'], 
                     SHOW_JITSI_WATERMARK: false,
-                    SHOW_WATERMARK_FOR_GUESTS: false,
-                    DEFAULT_BACKGROUND: '#000000',
                     MOBILE_APP_PROMO: false
                 },
                 userInfo: {
-                    displayName: souTransmissor ? "Transmissor (Você)" : "Espectador"
+                    displayName: souTransmissor ? "Transmissor" : "Espectador"
                 }
             };
 
             const api = new JitsiMeetExternalAPI(domain, options);
 
-            // Forçar configurações assim que entrar
+            // Garante visualização correta
             api.addEventListener('videoConferenceJoined', () => {
                 if (!souTransmissor) {
-                    // Se for receptor, garante que fica mudo e vê o transmissor grande
-                    api.executeCommand('toggleTileView'); // Garante tela cheia
+                    api.executeCommand('toggleTileView'); 
                 }
+            });
+            
+            // Se desligar a chamada, recarrega a página para voltar ao menu
+            api.addEventListener('videoConferenceLeft', () => {
+                location.reload();
             });
         }
     </script>
