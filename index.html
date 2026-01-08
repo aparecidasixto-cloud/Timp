@@ -3,65 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistema V4.0 (Force Video)</title>
+    <title>Sistema V5.0 (4G Unlock)</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
         body { font-family: sans-serif; background: #000; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
-        .box { background: #1a1a1a; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; border: 1px solid #333; position: relative; z-index: 10; }
+        .box { background: #1a1a1a; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; border: 1px solid #333; z-index: 10; }
         input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: none; background: #333; color: white; font-size: 16px; }
         button { width: 100%; padding: 15px; background: #0070f3; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 16px; touch-action: manipulation; }
         
-        /* Área de vídeo ocupa a tela toda no receptor */
         #videoContainer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5; display: none; }
         video { width: 100%; height: 100%; object-fit: cover; }
-        
-        /* Pequena janela para o transmissor ver a si mesmo */
         .preview-video { width: 100%; height: auto; border-radius: 8px; margin-top: 10px; background: #222; transform: rotateY(180deg); }
-        
         .hidden { display: none !important; }
-        .log { margin-top: 10px; font-size: 12px; color: yellow; }
+        .log { margin-top: 10px; font-size: 11px; color: yellow; font-family: monospace; }
         .status-overlay { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 5px 10px; border-radius: 5px; color: #0f0; font-size: 12px; z-index: 20; pointer-events: none; }
     </style>
 </head>
 <body>
 
     <div id="telaLogin" class="box">
-        <h2>Acesso V4.0</h2>
+        <h2>Acesso V5.0 (4G)</h2>
         <input type="text" id="usuario" placeholder="Usuário">
         <input type="password" id="senha" placeholder="Senha">
-        <button onclick="login()">ENTRAR SISTEMA</button>
-        <p id="msg" style="color:#aaa; font-size:12px; margin-top:10px;">Versão com correção de vídeo preto.</p>
+        <button onclick="login()">ENTRAR</button>
+        <p style="color:#666; font-size:11px; margin-top:10px;">Com desbloqueio de rede TURN</p>
     </div>
 
     <div id="telaTransmissor" class="box hidden">
         <h3>Transmissor ON</h3>
-        <p style="font-size:12px; color:#bbb;">Mantenha esta tela aberta e ativa.</p>
         <video id="localPreview" class="preview-video" autoplay muted playsinline></video>
-        <div id="logTransmissor" class="log">Iniciando câmera...</div>
+        <div id="logTransmissor" class="log">Iniciando sistema...</div>
     </div>
 
     <div id="videoContainer">
-        <div class="status-overlay" id="statusReceptor">Aguardando sinal...</div>
+        <div class="status-overlay" id="statusReceptor">Conectando...</div>
         <video id="remoteVideo" autoplay playsinline webkit-playsinline></video>
-        <button onclick="tentarDarPlay()" style="position:absolute; bottom:50px; left:50%; transform:translateX(-50%); width:200px; opacity:0.8; z-index:30;">SE O VÍDEO NÃO ABRIR CLIQUE AQUI</button>
+        <button onclick="document.getElementById('remoteVideo').play()" style="position:absolute; bottom:50px; left:50%; transform:translateX(-50%); width:200px; opacity:0.6; z-index:30;">FORÇAR VÍDEO</button>
     </div>
 
     <div id="painelConexao" class="box hidden">
-        <h3>Receptor</h3>
-        <p>Clique abaixo para iniciar a conexão.</p>
-        <button onclick="conectar()">CONECTAR AO VÍDEO</button>
-        <div id="logReceptor" class="log"></div>
+        <h3>Modo Receptor</h3>
+        <p style="font-size:13px; color:#aaa">Clique para conectar usando servidores seguros.</p>
+        <button onclick="conectar()">INICIAR VÍDEO</button>
+        <div id="logReceptor" class="log">Aguardando comando...</div>
     </div>
 
     <script>
-        const ID_SALA = "sistema-093106Rm-v4-force";
+        const ID_SALA = "sis-093106Rm-v5-turn";
+        
+        // CONFIGURAÇÃO MÁGICA PARA 4G (Servidores TURN Públicos)
+        const peerConfig = {
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' }, // STUN Padrão
+                    { 
+                        urls: 'turn:openrelay.metered.ca:80', 
+                        username: 'openrelayproject', 
+                        credential: 'openrelayproject' 
+                    },
+                    { 
+                        urls: 'turn:openrelay.metered.ca:443', 
+                        username: 'openrelayproject', 
+                        credential: 'openrelayproject' 
+                    }
+                ]
+            }
+        };
+
         let peer = null;
 
         function login() {
             const u = document.getElementById('usuario').value.trim().toLowerCase();
             const s = document.getElementById('senha').value.trim();
             
-            if (s !== "093106Rm") return alert("Senha errada");
+            if (s !== "093106Rm") return alert("Senha incorreta");
 
             if (u.includes("trasmitir") || u.includes("transmitir")) {
                 iniciarTransmissor();
@@ -69,78 +84,78 @@
                 document.getElementById('telaLogin').classList.add('hidden');
                 document.getElementById('painelConexao').classList.remove('hidden');
             } else {
-                alert("Use: 'trasmitir123' ou 'receber'");
+                alert("Usuário inválido");
             }
         }
 
-        // --- TRANSMISSOR ---
         function iniciarTransmissor() {
             document.getElementById('telaLogin').classList.add('hidden');
             document.getElementById('telaTransmissor').classList.remove('hidden');
+            const log = document.getElementById('logTransmissor');
 
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true })
+            log.innerText = "1. Abrindo câmera...";
+
+            // Configuração específica para Mobile (Tenta câmera traseira ou frontal)
+            navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, 
+                audio: true 
+            })
             .then(stream => {
                 document.getElementById('localPreview').srcObject = stream;
+                log.innerText = "2. Conectando ao servidor TURN...";
                 
-                peer = new Peer(ID_SALA);
+                peer = new Peer(ID_SALA, peerConfig);
                 
-                peer.on('open', () => {
-                    document.getElementById('logTransmissor').innerText = "SISTEMA ONLINE. AGUARDANDO...";
+                peer.on('open', (id) => {
+                    log.innerText = "ONLINE! ID: " + id;
+                    log.style.color = "#0f0";
                 });
 
-                peer.on('error', (err) => {
-                    document.getElementById('logTransmissor').innerText = "Erro: " + err.type;
-                    if(err.type === 'unavailable-id') alert("Já existe um transmissor aberto!");
+                peer.on('error', err => {
+                    log.innerText = "ERRO: " + err.type;
+                    if(err.type === 'unavailable-id') alert("Erro: Feche a outra aba do transmissor!");
                 });
 
-                peer.on('call', (call) => {
-                    document.getElementById('logTransmissor').innerText = "Conectado com espectador!";
-                    call.answer(stream); // Envia o vídeo
+                peer.on('call', call => {
+                    log.innerText = "Recebendo conexão 4G...";
+                    call.answer(stream);
                 });
             })
-            .catch(e => alert("Erro Câmera: " + e));
-        }
-
-        // --- RECEPTOR ---
-        function conectar() {
-            document.getElementById('painelConexao').classList.add('hidden');
-            document.getElementById('videoContainer').style.display = 'block';
-            document.getElementById('statusReceptor').innerText = "Conectando ao servidor...";
-
-            peer = new Peer();
-            
-            peer.on('open', () => {
-                const call = peer.call(ID_SALA, dummyStream());
-                
-                call.on('stream', (remoteStream) => {
-                    document.getElementById('statusReceptor').innerText = "Sinal recebido! Carregando imagem...";
-                    const video = document.getElementById('remoteVideo');
-                    
-                    video.srcObject = remoteStream;
-                    video.onloadedmetadata = () => {
-                        document.getElementById('statusReceptor').innerText = "VÍDEO ATIVO";
-                        video.play();
-                    };
-                });
-
-                call.on('close', () => {
-                    alert("Transmissão encerrada pelo dono.");
-                    location.reload();
-                });
-                
-                // Monitoramento de erro
-                setTimeout(() => {
-                    if(document.getElementById('statusReceptor').innerText.includes("Conectando")) {
-                        document.getElementById('statusReceptor').innerText = "Sem sinal. Verifique se o transmissor está ON.";
-                    }
-                }, 8000);
+            .catch(e => {
+                log.innerText = "Erro Câmera: " + e;
+                alert("Permita a câmera no navegador!");
             });
         }
 
-        function tentarDarPlay() {
-            const v = document.getElementById('remoteVideo');
-            v.play();
-            v.muted = false;
+        function conectar() {
+            document.getElementById('painelConexao').classList.add('hidden');
+            document.getElementById('videoContainer').style.display = 'block';
+            const status = document.getElementById('statusReceptor');
+
+            status.innerText = "Buscando servidor Relay...";
+
+            peer = new Peer(undefined, peerConfig); // Usa a mesma config TURN
+            
+            peer.on('open', () => {
+                status.innerText = "Conectando ao Transmissor...";
+                const call = peer.call(ID_SALA, dummyStream());
+                
+                call.on('stream', remoteStream => {
+                    status.innerText = "Sinal recebido! Abrindo vídeo...";
+                    const v = document.getElementById('remoteVideo');
+                    v.srcObject = remoteStream;
+                    v.play().catch(e => status.innerText = "Toque na tela para liberar áudio");
+                });
+
+                call.on('close', () => {
+                    alert("Transmissão caiu.");
+                    location.reload();
+                });
+                
+                peer.on('error', err => {
+                    status.innerText = "Erro: " + err.type;
+                });
+            });
         }
 
         function dummyStream() {
