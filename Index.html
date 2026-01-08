@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Transmissão Seguro</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #333; padding: 2rem; border-radius: 10px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 90%; max-width: 400px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:hover { background: #0051a2; }
+        video { width: 100%; border-radius: 8px; margin-top: 15px; background: black; transform: rotateY(180deg); /* Espelhar localmente */ }
+        #remoteVideo { transform: none; /* Não espelhar o recebido */ }
+        .hidden { display: none; }
+        .status { margin-top: 10px; font-size: 0.9em; color: #aaa; }
+    </style>
+</head>
+<body>
+
+    <div id="loginScreen" class="container">
+        <h2>Acesso Restrito</h2>
+        <input type="text" id="user" placeholder="Usuário">
+        <input type="password" id="pass" placeholder="Senha">
+        <button onclick="fazerLogin()">Entrar</button>
+        <p id="errorMsg" style="color: red; display: none;">Credenciais inválidas.</p>
+    </div>
+
+    <div id="transmitScreen" class="container hidden">
+        <h2>Painel de Transmissão</h2>
+        <p>Você está ao vivo.</p>
+        <video id="localVideo" autoplay muted playsinline></video>
+        <div class="status" id="transmitStatus">Aguardando conexão...</div>
+    </div>
+
+    <div id="receiveScreen" class="container hidden">
+        <h2>Painel do Receptor</h2>
+        <p>Recebendo sinal...</p>
+        <video id="remoteVideo" autoplay playsinline controls></video>
+        <button id="btnConnect" onclick="conectarAoTransmissor()">Atualizar/Conectar</button>
+        <div class="status" id="receiveStatus">Tentando conectar...</div>
+    </div>
+
+    <script>
+        // CONFIGURAÇÃO DOS IDs (Para o PeerJS encontrar um ao outro)
+        // Usamos um prefixo para tentar torná-lo único na rede pública
+        const ROOM_ID = "video-system-secret-093106Rm"; 
+        
+        let peer = null;
+
+        function fazerLogin() {
+            const u = document.getElementById('user').value.trim();
+            const p = document.getElementById('pass').value.trim();
+            const error = document.getElementById('errorMsg');
+
+            if (p !== "093106Rm") {
+                error.style.display = 'block';
+                return;
+            }
+
+            if (u === "trasmitir123") {
+                iniciarTransmissor();
+            } else if (u === "receber") {
+                iniciarReceptor();
+            } else {
+                error.style.display = 'block';
+            }
+        }
+
+        // --- LÓGICA DO TRANSMISSOR ---
+        function iniciarTransmissor() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('transmitScreen').classList.remove('hidden');
+
+            // 1. Pega a câmera e microfone
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then(stream => {
+                const video = document.getElementById('localVideo');
+                video.srcObject = stream;
+
+                // 2. Cria identidade na rede
+                peer = new Peer(ROOM_ID + "-host");
+
+                peer.on('open', (id) => {
+                    document.getElementById('transmitStatus').innerText = "Sistema pronto. ID: " + id;
+                });
+
+                // 3. Quando alguém ligar, atenda enviando o vídeo
+                peer.on('call', (call) => {
+                    document.getElementById('transmitStatus').innerText = "Usuário conectado!";
+                    call.answer(stream); // Envia o vídeo para quem ligou
+                });
+            })
+            .catch(err => {
+                alert("Erro ao acessar câmera: " + err);
+            });
+        }
+
+        // --- LÓGICA DO RECEPTOR ---
+        function iniciarReceptor() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('receiveScreen').classList.remove('hidden');
+
+            // Cria identidade aleatória para o espectador
+            peer = new Peer(); 
+
+            peer.on('open', (id) => {
+                conectarAoTransmissor();
+            });
+        }
+
+        function conectarAoTransmissor() {
+            document.getElementById('receiveStatus').innerText = "Buscando sinal...";
+            
+            // Tenta ligar para o Host
+            const conn = peer.call(ROOM_ID + "-host", navigator.mediaDevices.getUserMedia({video:false, audio:true})); // Dummy stream para iniciar
+            
+            if(!conn) {
+                document.getElementById('receiveStatus').innerText = "Transmissor offline. Tente novamente.";
+                return;
+            }
+
+            conn.on('stream', (remoteStream) => {
+                document.getElementById('receiveStatus').innerText = "Conectado!";
+                const video = document.getElementById('remoteVideo');
+                video.srcObject = remoteStream;
+                video.play();
+            });
+
+            conn.on('close', () => {
+                document.getElementById('receiveStatus').innerText = "Transmissão encerrada.";
+            });
+            
+            // Tratamento de erro se o transmissor não estiver lá
+            peer.on('error', (err) => {
+                console.log(err);
+                document.getElementById('receiveStatus').innerText = "Transmissor não encontrado ainda. Clique em Conectar.";
+            });
+        }
+    </script>
+</body>
+  </html>
+  
